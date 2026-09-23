@@ -1,0 +1,81 @@
+name: "Ticket fonctionnalité"
+description: "Une fonctionnalité du Kanban Board, avec critères d'acceptation et gestion des erreurs explicites."
+title: "[Feature] "
+labels: ["type:feature"]
+body:
+  - type: dropdown
+    id: domaine
+    attributes:
+      label: Domaine
+      description: Nature de l'entité concernée
+      options:
+        - Infra
+        - Auth & Users
+        - Listes
+        - Cartes
+        - Documentation
+        - Bonus
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priorite
+    attributes:
+      label: Priorité (MoSCoW)
+      options:
+        - Must have
+        - Should have
+        - Could have
+    validations:
+      required: true
+
+  - type: input
+    id: route
+    attributes:
+      label: Route concernée
+      description: "Ex. POST /api/lists"
+      placeholder: "VERBE /api/..."
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User story
+      placeholder: "En tant que ..., je veux ..., afin de ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: ac-nominal
+    attributes:
+      label: "Critère(s) d'acceptation — cas nominal"
+      description: "Format Given / When / Then"
+      placeholder: |
+        Given ...
+        When ...
+        Then ... (code HTTP attendu, forme de la réponse)
+    validations:
+      required: true
+
+  - type: textarea
+    id: ac-erreurs
+    attributes:
+      label: "Critère(s) d'acceptation — gestion des erreurs"
+      description: "Un cas par ligne : validation (400), authentification (401), droits (403), ressource introuvable (404), conflit (409)..."
+      placeholder: |
+        Given ... (donnée invalide) When ... Then 400 ...
+        Given ... (non authentifié) When ... Then 401 ...
+        Given ... (ressource inconnue) When ... Then 404 ...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: dod
+    attributes:
+      label: "Definition of Done (voir DEFINITION_OF_DONE.md)"
+      options:
+        - label: Code implémenté et relu
+        - label: Tests couvrant le cas nominal ET chaque cas d'erreur listé ci-dessus
+        - label: Couverture de test du module ≥ 80 %
+        - label: Documentation Swagger/OpenAPI à jour (succès et erreurs, avec exemples)
+        - label: Gestion des erreurs conforme (bons codes HTTP, messages exploitables)
+        - label: Aucune régression sur la suite de tests existante
