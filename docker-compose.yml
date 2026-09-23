@@ -1,0 +1,27 @@
+# PostgreSQL 17 for grading or development: `docker compose up -d --wait`.
+# Host port 5433 avoids conflicting with a local PostgreSQL server on 5432.
+# `name` keeps the Compose project name independent of the directory name.
+name: kanban
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: kanban-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kanban
+      POSTGRES_PASSWORD: kanban
+      POSTGRES_DB: kanban
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kanban -d kanban"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  pgdata:

@@ -1,0 +1,53 @@
+// Prisma 7 schema for the Kanban Board API (see the data model in CAHIER_DES_CHARGES.md).
+// Generate the client in src/generated/prisma (ignored by git): `npm run prisma:generate`.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs" // NestJS project using CommonJS (Jest + ts-jest)
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  user
+  admin
+}
+
+model User {
+  id        String   @id @default(uuid(7))
+  email     String   @unique
+  password  String // Argon2id hash, never returned by the API (global omit in PrismaService)
+  name      String
+  role      Role     @default(user)
+  createdAt DateTime @default(now())
+  lists     List[]
+}
+
+model List {
+  id        String   @id @default(uuid(7))
+  title     String
+  position  Int      @default(0)
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  cards     Card[]
+
+  @@index([ownerId])
+}
+
+model Card {
+  id          String   @id @default(uuid(7))
+  title       String
+  description String?
+  position    Int      @default(0)
+  listId      String
+  // As documented in the README, deleting a list also deletes its cards.
+  list        List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([listId])
+}

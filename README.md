@@ -25,3 +25,20 @@ Le choix de la techno (NestJS, Symfony ou Spring Boot) est libre, mais **le cont
 5. Implémentez l'API dans le framework de votre choix, en respectant les routes du contrat et en cochant la DoD ticket par ticket.
 6. Exposez votre propre documentation Swagger sur `/api`.
 7. Rédigez votre rapport de veille (`rapport-veille-back.pdf`) et un README détaillé de votre projet final.
+
+## Démarrage rapide (API NestJS)
+
+Prérequis : Node.js 24, npm 11, Docker Desktop (ou un PostgreSQL 17 local, voir `.env.example`).
+
+```powershell
+docker compose up -d --wait      # PostgreSQL 17 sur le port 5433 (bases kanban et kanban_test)
+npm install
+Copy-Item .env.example .env      # puis renseigner JWT_SECRET (commande indiquée dans le fichier)
+npm run prisma:generate          # génère le client Prisma dans src/generated (non versionné)
+npm run db:migrate               # applique les migrations
+npm run start:dev                # http://localhost:3000/api
+```
+
+- Tests : `npm test` (unitaires) et `npm run test:e2e` (base `kanban_test` dédiée, réinitialisée à chaque test).
+- Configuration : toutes les variables sont décrites dans `.env.example`. Une variable manquante ou invalide (ex. `JWT_SECRET`) ou une base injoignable empêche le démarrage avec un message explicite.
+- Stack : NestJS 12 (CommonJS + Jest), Prisma 7 (`prisma/schema.prisma`, migrations dans `prisma/migrations`), PostgreSQL 17.

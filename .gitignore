@@ -1,0 +1,30 @@
+# Dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Test reports
+coverage/
+coverage-e2e/
+
+# Environment: only .env.example and .env.test (without real secrets) are tracked.
+.env
+.env.*.local
+
+# Generated Prisma client (regenerate with `npm run prisma:generate`)
+src/generated/
+
+# Logs, OS, IDE
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Local tools not included in the repository (issue creation, roadmaps)
+scripts/
+docs/ROADMAP*.md
+
+/src/generated/prisma
