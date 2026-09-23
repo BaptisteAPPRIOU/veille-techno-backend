@@ -39,6 +39,7 @@ npm run db:migrate               # applique les migrations
 npm run start:dev                # http://localhost:3000/api
 ```
 
+- Documentation Swagger : http://localhost:3000/api (interface), http://localhost:3000/api-json (document OpenAPI), alignée sur `openapi.yaml`.
 - Tests : `npm test` (unitaires) et `npm run test:e2e` (base `kanban_test` dédiée, réinitialisée à chaque test).
 - Configuration : toutes les variables sont décrites dans `.env.example`. Une variable manquante ou invalide (ex. `JWT_SECRET`) ou une base injoignable empêche le démarrage avec un message explicite.
 - Stack : NestJS 12 (CommonJS + Jest), Prisma 7 (`prisma/schema.prisma`, migrations dans `prisma/migrations`), PostgreSQL 17.
