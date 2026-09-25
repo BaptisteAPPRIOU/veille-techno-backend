@@ -1,6 +1,7 @@
 import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
+import { AuthModule } from './auth/auth.module';
 import { validate } from './config/env.validation';
 import { PrismaExceptionFilter } from './prisma/prisma-exception.filter';
 import { PrismaModule } from './prisma/prisma.module';
@@ -10,6 +11,7 @@ import { PrismaModule } from './prisma/prisma.module';
     // Load .env and validate required variables so startup fails clearly if one is missing.
     ConfigModule.forRoot({ isGlobal: true, validate }),
     PrismaModule,
+    AuthModule,
   ],
   providers: [
     // Validate DTOs on every route: report invalid fields with 400 and reject unknown fields.
