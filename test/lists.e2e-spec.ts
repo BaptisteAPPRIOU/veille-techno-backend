@@ -142,6 +142,15 @@ describe('DELETE /api/lists/{id} (ticket #10)', () => {
     expect(lists.body).toEqual([]);
   });
 
+  it('deletes the cards of the list too (cascade documented in the README)', async () => {
+    const created = await postList(tokens.alice, { title: 'To do' }).expect(201);
+    const prisma = app.get(PrismaService);
+    await prisma.card.create({ data: { title: 'A card', listId: created.body.id } });
+
+    await deleteList(created.body.id, tokens.alice).expect(204);
+    expect(await prisma.card.count()).toBe(0);
+  });
+
   it('returns 403 when the list belongs to another user', async () => {
     const created = await postList(tokens.alice, { title: 'To do' }).expect(201);
     await deleteList(created.body.id, tokens.bob).expect(403);
