@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { validate } from './config/env.validation';
 import { PrismaExceptionFilter } from './prisma/prisma-exception.filter';
 import { PrismaModule } from './prisma/prisma.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ConfigModule.forRoot({ isGlobal: true, validate }),
     PrismaModule,
     AuthModule,
+    UsersModule,
   ],
   providers: [
     // Validate DTOs on every route: report invalid fields with 400 and reject unknown fields.
