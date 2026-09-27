@@ -47,6 +47,11 @@ const patchList = (id: string, token: string | undefined, body: object) => {
   return token ? req.set('Authorization', `Bearer ${token}`) : req;
 };
 
+const deleteList = (id: string, token?: string) => {
+  const req = request(app.getHttpServer()).delete(`/api/lists/${id}`);
+  return token ? req.set('Authorization', `Bearer ${token}`) : req;
+};
+
 describe('GET /api/lists (ticket #7)', () => {
   it('returns 200 with only the lists of the current user, ordered by position', async () => {
     // Seed directly in the database: this test only targets the read route.
@@ -124,5 +129,30 @@ describe('PATCH /api/lists/{id} (ticket #9)', () => {
       const res = await patchList(created.body.id, tokens.alice, body).expect(400);
       expect(res.body.message).toContainEqual(expect.stringContaining(Object.keys(body)[0]));
     }
+  });
+});
+
+describe('DELETE /api/lists/{id} (ticket #10)', () => {
+  it('returns 204 and the list no longer appears in GET /api/lists', async () => {
+    const created = await postList(tokens.alice, { title: 'To do' }).expect(201);
+    const res = await deleteList(created.body.id, tokens.alice).expect(204);
+    expect(res.body).toEqual({});
+
+    const lists = await getLists(tokens.alice).expect(200);
+    expect(lists.body).toEqual([]);
+  });
+
+  it('returns 403 when the list belongs to another user', async () => {
+    const created = await postList(tokens.alice, { title: 'To do' }).expect(201);
+    await deleteList(created.body.id, tokens.bob).expect(403);
+  });
+
+  it('returns 404 for an unknown list id', async () => {
+    await deleteList('00000000-0000-7000-8000-000000000000', tokens.alice).expect(404);
+  });
+
+  it('returns 401 without a token', async () => {
+    const created = await postList(tokens.alice, { title: 'To do' }).expect(201);
+    await deleteList(created.body.id).expect(401);
   });
 });

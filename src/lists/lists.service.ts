@@ -25,6 +25,12 @@ export class ListsService {
     return this.prisma.list.update({ where: { id }, data: dto });
   }
 
+  async remove(ownerId: string, id: string): Promise<void> {
+    await this.findOwned(id, ownerId);
+    // The cards of the list go with it (onDelete: Cascade in the Prisma schema), see the README.
+    await this.prisma.list.delete({ where: { id } });
+  }
+
   // Existence first, then ownership: same order as the users module.
   private async findOwned(id: string, ownerId: string): Promise<List> {
     const list = await this.prisma.list.findUnique({ where: { id } });

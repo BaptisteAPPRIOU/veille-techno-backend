@@ -1,9 +1,21 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -77,5 +89,23 @@ export class ListsController {
     @Body() dto: UpdateListDto,
   ): Promise<ListResponseDto> {
     return this.listsService.update(user.id, id, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a list and its cards, restricted to its owner' })
+  @ApiNoContentResponse({ description: 'List deleted, its cards with it. No body.' })
+  @ApiForbiddenResponse({
+    description: 'The list belongs to another user',
+    schema: {
+      example: { statusCode: 403, message: 'This list belongs to another user', error: 'Forbidden' },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Unknown list id',
+    schema: { example: { statusCode: 404, message: 'List not found', error: 'Not Found' } },
+  })
+  remove(@CurrentUser() user: PublicUser, @Param('id') id: string): Promise<void> {
+    return this.listsService.remove(user.id, id);
   }
 }
