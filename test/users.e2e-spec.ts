@@ -83,6 +83,11 @@ describe('PATCH /api/users/{id} (ticket #6)', () => {
     expect(res.body.message).toEqual([expect.stringContaining('role')]);
   });
 
+  it('returns 400 naming the field when it is null rather than absent', async () => {
+    const res = await patchUser(ids.alice, tokens.alice, { name: null }).expect(400);
+    expect(res.body.message).toContainEqual(expect.stringContaining('name'));
+  });
+
   it('returns 401 without a token or with an invalid one', async () => {
     await patchUser(ids.alice, undefined, { name: 'X' }).expect(401);
     await patchUser(ids.alice, 'not-a-jwt', { name: 'X' }).expect(401);
