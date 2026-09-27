@@ -8,7 +8,7 @@ export class ListResponseDto {
   @ApiProperty({ example: 'To do' })
   title: string;
 
-  @ApiProperty({ example: 0 })
+  @ApiProperty({ example: 0, type: 'integer' })
   position: number;
 
   @ApiProperty({

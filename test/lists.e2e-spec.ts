@@ -37,6 +37,11 @@ const getLists = (token?: string) => {
   return token ? req.set('Authorization', `Bearer ${token}`) : req;
 };
 
+const postList = (token: string | undefined, body: object) => {
+  const req = request(app.getHttpServer()).post('/api/lists').send(body);
+  return token ? req.set('Authorization', `Bearer ${token}`) : req;
+};
+
 describe('GET /api/lists (ticket #7)', () => {
   it('returns 200 with only the lists of the current user, ordered by position', async () => {
     // Seed directly in the database: this test only targets the read route.
@@ -64,5 +69,29 @@ describe('GET /api/lists (ticket #7)', () => {
 
   it('returns 401 without a token', async () => {
     await getLists().expect(401);
+  });
+});
+
+describe('POST /api/lists (ticket #8)', () => {
+  it('returns 201 with the created list owned by the current user', async () => {
+    const res = await postList(tokens.alice, { title: 'To do' }).expect(201);
+    expect(res.body).toMatchObject({ title: 'To do', position: 0, ownerId: ids.alice });
+    expect(res.body).toEqual(
+      expect.objectContaining({ id: expect.any(String), createdAt: expect.any(String) }),
+    );
+
+    const withPosition = await postList(tokens.alice, { title: 'Done', position: 3 }).expect(201);
+    expect(withPosition.body).toMatchObject({ title: 'Done', position: 3, ownerId: ids.alice });
+  });
+
+  it('returns 400 naming the field when the title is empty or missing', async () => {
+    for (const body of [{ title: '' }, {}]) {
+      const res = await postList(tokens.alice, body).expect(400);
+      expect(res.body.message).toContainEqual(expect.stringContaining('title'));
+    }
+  });
+
+  it('returns 401 without a token', async () => {
+    await postList(undefined, { title: 'To do' }).expect(401);
   });
 });
