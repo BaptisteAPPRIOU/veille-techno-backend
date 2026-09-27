@@ -1,4 +1,5 @@
 import { INestApplication } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service';
@@ -7,24 +8,24 @@ import { resetDb } from './helpers/db';
 
 const validUser = { email: 'alice@example.com', password: 'Password123!', name: 'Alice' };
 
+let app: INestApplication;
+
+beforeAll(async () => {
+  app = await createTestApp();
+});
+
+beforeEach(async () => {
+  await resetDb(app);
+});
+
+afterAll(async () => {
+  await app.close();
+});
+
+const register = (body: object) => request(app.getHttpServer()).post('/api/auth/register').send(body);
+const login = (body: object) => request(app.getHttpServer()).post('/api/auth/login').send(body);
+
 describe('POST /api/auth/register (ticket #3)', () => {
-  let app: INestApplication;
-
-  beforeAll(async () => {
-    app = await createTestApp();
-  });
-
-  beforeEach(async () => {
-    await resetDb(app);
-  });
-
-  afterAll(async () => {
-    await app.close();
-  });
-
-  const register = (body: object) => request(app.getHttpServer()).post('/api/auth/register').send(body);
-
-  // Test cases
   it('creates the user and returns 201 with its public fields', async () => {
     const res = await register(validUser).expect(201);
     expect(res.body).toMatchObject({ email: validUser.email, name: validUser.name, role: 'user' });
@@ -73,5 +74,44 @@ describe('POST /api/auth/register (ticket #3)', () => {
 
     const tooLong = await register({ ...validUser, name: 'a'.repeat(33) }).expect(400);
     expect(tooLong.body.message).toEqual([expect.stringContaining('name')]);
+  });
+});
+
+describe('POST /api/auth/login (ticket #4)', () => {
+  let userId: string;
+
+  beforeEach(async () => {
+    const res = await register(validUser).expect(201);
+    userId = res.body.id;
+  });
+
+  it('returns 200 and a signed JWT carrying the user id and a one-hour expiration', async () => {
+    const res = await login({ email: validUser.email, password: validUser.password }).expect(200);
+    expect(res.body).toEqual({ accessToken: expect.any(String) });
+
+    const payload = await app.get(JwtService).verifyAsync(res.body.accessToken);
+    expect(payload.sub).toBe(userId);
+    expect(payload.exp - payload.iat).toBe(3600);
+  });
+
+  it('puts no password information in the response nor in the token', async () => {
+    const res = await login({ email: validUser.email, password: validUser.password }).expect(200);
+    expect(JSON.stringify(res.body)).not.toContain(validUser.password);
+
+    const payload = await app.get(JwtService).verifyAsync(res.body.accessToken);
+    expect(Object.keys(payload).sort()).toEqual(['exp', 'iat', 'sub']);
+  });
+
+  it('returns 401 with the same generic message for an unknown email and for a wrong password', async () => {
+    const unknownEmail = await login({ email: 'nobody@example.com', password: validUser.password }).expect(
+      401,
+    );
+    const wrongPassword = await login({ email: validUser.email, password: 'WrongPassword!' }).expect(401);
+    expect(unknownEmail.body).toEqual({
+      statusCode: 401,
+      message: 'Invalid credentials',
+      error: 'Unauthorized',
+    });
+    expect(wrongPassword.body).toEqual(unknownEmail.body);
   });
 });
