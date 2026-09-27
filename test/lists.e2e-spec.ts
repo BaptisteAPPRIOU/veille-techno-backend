@@ -42,6 +42,11 @@ const postList = (token: string | undefined, body: object) => {
   return token ? req.set('Authorization', `Bearer ${token}`) : req;
 };
 
+const patchList = (id: string, token: string | undefined, body: object) => {
+  const req = request(app.getHttpServer()).patch(`/api/lists/${id}`).send(body);
+  return token ? req.set('Authorization', `Bearer ${token}`) : req;
+};
+
 describe('GET /api/lists (ticket #7)', () => {
   it('returns 200 with only the lists of the current user, ordered by position', async () => {
     // Seed directly in the database: this test only targets the read route.
@@ -93,5 +98,31 @@ describe('POST /api/lists (ticket #8)', () => {
 
   it('returns 401 without a token', async () => {
     await postList(undefined, { title: 'To do' }).expect(401);
+  });
+});
+
+describe('PATCH /api/lists/{id} (ticket #9)', () => {
+  it('returns 200 with the updated list when the current user owns it', async () => {
+    const created = await postList(tokens.alice, { title: 'To do' }).expect(201);
+    const res = await patchList(created.body.id, tokens.alice, { title: 'Doing', position: 1 }).expect(200);
+    expect(res.body).toMatchObject({ id: created.body.id, title: 'Doing', position: 1, ownerId: ids.alice });
+  });
+
+  it('returns 403 when the list belongs to another user', async () => {
+    const created = await postList(tokens.alice, { title: 'To do' }).expect(201);
+    const res = await patchList(created.body.id, tokens.bob, { title: 'Hacked' }).expect(403);
+    expect(res.body).toMatchObject({ statusCode: 403, error: 'Forbidden' });
+  });
+
+  it('returns 404 for an unknown list id', async () => {
+    await patchList('00000000-0000-7000-8000-000000000000', tokens.alice, { title: 'Nobody' }).expect(404);
+  });
+
+  it('returns 400 naming the field for an invalid payload', async () => {
+    const created = await postList(tokens.alice, { title: 'To do' }).expect(201);
+    for (const body of [{ title: '' }, { title: null }, { position: 'first' }]) {
+      const res = await patchList(created.body.id, tokens.alice, body).expect(400);
+      expect(res.body.message).toContainEqual(expect.stringContaining(Object.keys(body)[0]));
+    }
   });
 });
