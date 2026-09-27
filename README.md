@@ -43,3 +43,7 @@ npm run start:dev                # http://localhost:3000/api
 - Tests : `npm test` (unitaires) et `npm run test:e2e` (base `kanban_test` dédiée, réinitialisée à chaque test).
 - Configuration : toutes les variables sont décrites dans `.env.example`. Une variable manquante ou invalide (ex. `JWT_SECRET`) ou une base injoignable empêche le démarrage avec un message explicite.
 - Stack : NestJS 12 (CommonJS + Jest), Prisma 7 (`prisma/schema.prisma`, migrations dans `prisma/migrations`), PostgreSQL 17.
+
+## Choix d'implémentation
+
+- **Suppression d'une liste** (`DELETE /api/lists/{id}`) : ses cartes sont supprimées avec elle. La cascade est déclarée dans le schéma Prisma (`onDelete: Cascade` sur la relation carte → liste) et donc appliquée par PostgreSQL. Une liste n'est jamais refusée à la suppression parce qu'elle contient encore des cartes.

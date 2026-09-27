@@ -1,8 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { Role } from '../src/generated/prisma/client';
-import { PrismaService } from '../src/prisma/prisma.service';
 import { createTestApp } from './helpers/app';
+import { signUpAndLogin } from './helpers/auth';
 import { resetDb } from './helpers/db';
 
 const alice = { email: 'alice@example.com', password: 'Password123!', name: 'Alice' };
@@ -21,19 +21,6 @@ afterAll(async () => {
   await app.close();
 });
 
-async function signUpAndLogin(user: typeof alice, role: Role = Role.user) {
-  const registered = await request(app.getHttpServer()).post('/api/auth/register').send(user).expect(201);
-  if (role === Role.admin) {
-    // Registration never creates admins: promote directly in the database for the tests.
-    await app.get(PrismaService).user.update({ where: { id: registered.body.id }, data: { role } });
-  }
-  const login = await request(app.getHttpServer())
-    .post('/api/auth/login')
-    .send({ email: user.email, password: user.password })
-    .expect(200);
-  return { id: registered.body.id as string, token: login.body.accessToken as string };
-}
-
 beforeEach(async () => {
   await resetDb(app);
   for (const [key, user, role] of [
@@ -41,7 +28,7 @@ beforeEach(async () => {
     ['bob', bob, Role.user],
     ['admin', admin, Role.admin],
   ] as const) {
-    const { id, token } = await signUpAndLogin(user, role);
+    const { id, token } = await signUpAndLogin(app, user, role);
     ids[key] = id;
     tokens[key] = token;
   }
