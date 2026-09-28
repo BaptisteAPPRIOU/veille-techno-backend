@@ -47,6 +47,11 @@ const postCard = (listId: string, token: string | undefined, body: object) => {
   return token ? req.set('Authorization', `Bearer ${token}`) : req;
 };
 
+const getCard = (id: string, token?: string) => {
+  const req = request(app.getHttpServer()).get(`/api/cards/${id}`);
+  return token ? req.set('Authorization', `Bearer ${token}`) : req;
+};
+
 describe('GET /api/lists/{listId}/cards (ticket #11)', () => {
   it('returns 200 with the cards of my list, ordered by position', async () => {
     // Seed directly in the database: this test only targets the read route.
@@ -126,5 +131,28 @@ describe('POST /api/lists/{listId}/cards (ticket #12)', () => {
 
   it('returns 404 for an unknown list id', async () => {
     await postCard('00000000-0000-7000-8000-000000000000', tokens.alice, { title: 'Nowhere' }).expect(404);
+  });
+});
+
+describe('GET /api/cards/{id} (ticket #13)', () => {
+  it('returns 200 with the card when its list is mine', async () => {
+    const created = await postCard(listIds.alice, tokens.alice, { title: 'Mine', position: 1 }).expect(201);
+    const res = await getCard(created.body.id, tokens.alice).expect(200);
+    expect(res.body).toEqual(created.body);
+  });
+
+  it('returns 403 when the parent list belongs to another user', async () => {
+    const created = await postCard(listIds.bob, tokens.bob, { title: 'His' }).expect(201);
+    const res = await getCard(created.body.id, tokens.alice).expect(403);
+    expect(res.body).toMatchObject({ statusCode: 403, error: 'Forbidden' });
+  });
+
+  it('returns 404 for an unknown card id', async () => {
+    await getCard('00000000-0000-7000-8000-000000000000', tokens.alice).expect(404);
+  });
+
+  it('returns 401 without a token', async () => {
+    const created = await postCard(listIds.alice, tokens.alice, { title: 'Mine' }).expect(201);
+    await getCard(created.body.id).expect(401);
   });
 });
