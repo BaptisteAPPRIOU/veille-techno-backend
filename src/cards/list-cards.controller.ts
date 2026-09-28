@@ -1,6 +1,8 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -13,6 +15,7 @@ import type { PublicUser } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { CardsService } from './cards.service';
 import { CardResponseDto } from './dto/card-response.dto';
+import { CreateCardDto } from './dto/create-card.dto';
 
 @ApiTags('Cards')
 @ApiBearerAuth()
@@ -42,5 +45,20 @@ export class ListCardsController {
   })
   findAll(@CurrentUser() user: PublicUser, @Param('listId') listId: string): Promise<CardResponseDto[]> {
     return this.cardsService.findAllInList(user.id, listId);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create a card in one of my lists' })
+  @ApiCreatedResponse({ description: 'Created card, in the list given in the path', type: CardResponseDto })
+  @ApiBadRequestResponse({
+    description: 'Missing or empty title, non-string description, non-integer position',
+    schema: { example: { statusCode: 400, message: ['title should not be empty'], error: 'Bad Request' } },
+  })
+  create(
+    @CurrentUser() user: PublicUser,
+    @Param('listId') listId: string,
+    @Body() dto: CreateCardDto,
+  ): Promise<CardResponseDto> {
+    return this.cardsService.createInList(user.id, listId, dto);
   }
 }

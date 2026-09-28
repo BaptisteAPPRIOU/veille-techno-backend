@@ -42,6 +42,11 @@ const getCards = (listId: string, token?: string) => {
   return token ? req.set('Authorization', `Bearer ${token}`) : req;
 };
 
+const postCard = (listId: string, token: string | undefined, body: object) => {
+  const req = request(app.getHttpServer()).post(`/api/lists/${listId}/cards`).send(body);
+  return token ? req.set('Authorization', `Bearer ${token}`) : req;
+};
+
 describe('GET /api/lists/{listId}/cards (ticket #11)', () => {
   it('returns 200 with the cards of my list, ordered by position', async () => {
     // Seed directly in the database: this test only targets the read route.
@@ -82,5 +87,44 @@ describe('GET /api/lists/{listId}/cards (ticket #11)', () => {
 
   it('returns 401 without a token', async () => {
     await getCards(listIds.alice).expect(401);
+  });
+});
+
+describe('POST /api/lists/{listId}/cards (ticket #12)', () => {
+  it('returns 201 with the card created in my list', async () => {
+    const full = { title: 'Write the README', description: 'Installation and usage', position: 2 };
+    const res = await postCard(listIds.alice, tokens.alice, full).expect(201);
+    expect(res.body).toMatchObject({ ...full, listId: listIds.alice });
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        id: expect.any(String),
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      }),
+    );
+
+    const minimal = await postCard(listIds.alice, tokens.alice, { title: 'Only a title' }).expect(201);
+    expect(minimal.body).toMatchObject({
+      title: 'Only a title',
+      description: null,
+      position: 0,
+      listId: listIds.alice,
+    });
+  });
+
+  it('returns 403 when the list belongs to another user', async () => {
+    const res = await postCard(listIds.bob, tokens.alice, { title: 'Intruder' }).expect(403);
+    expect(res.body).toMatchObject({ statusCode: 403, error: 'Forbidden' });
+  });
+
+  it('returns 400 naming the field when the title is missing or empty', async () => {
+    for (const body of [{}, { title: '' }]) {
+      const res = await postCard(listIds.alice, tokens.alice, body).expect(400);
+      expect(res.body.message).toContainEqual(expect.stringContaining('title'));
+    }
+  });
+
+  it('returns 404 for an unknown list id', async () => {
+    await postCard('00000000-0000-7000-8000-000000000000', tokens.alice, { title: 'Nowhere' }).expect(404);
   });
 });

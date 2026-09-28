@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Card } from '../generated/prisma/client';
 import { ListsService } from '../lists/lists.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateCardDto } from './dto/create-card.dto';
 
 @Injectable()
 export class CardsService {
@@ -17,5 +18,10 @@ export class CardsService {
       where: { listId },
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
     });
+  }
+
+  async createInList(ownerId: string, listId: string, dto: CreateCardDto): Promise<Card> {
+    await this.listsService.findOwned(listId, ownerId);
+    return this.prisma.card.create({ data: { ...dto, listId } });
   }
 }
