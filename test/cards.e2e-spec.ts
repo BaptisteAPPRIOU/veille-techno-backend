@@ -12,6 +12,15 @@ let app: INestApplication;
 const tokens: Record<string, string> = {};
 const listIds: Record<string, string> = {};
 
+const createList = async (token: string): Promise<string> => {
+  const res = await request(app.getHttpServer())
+    .post('/api/lists')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ title: 'My list' })
+    .expect(201);
+  return res.body.id;
+};
+
 beforeAll(async () => {
   app = await createTestApp();
 });
@@ -28,12 +37,7 @@ beforeEach(async () => {
     ['bob', bob],
   ] as const) {
     tokens[key] = (await signUpAndLogin(app, user)).token;
-    const list = await request(app.getHttpServer())
-      .post('/api/lists')
-      .set('Authorization', `Bearer ${tokens[key]}`)
-      .send({ title: 'My list' })
-      .expect(201);
-    listIds[key] = list.body.id;
+    listIds[key] = await createList(tokens[key]);
   }
 });
 
@@ -49,6 +53,11 @@ const postCard = (listId: string, token: string | undefined, body: object) => {
 
 const getCard = (id: string, token?: string) => {
   const req = request(app.getHttpServer()).get(`/api/cards/${id}`);
+  return token ? req.set('Authorization', `Bearer ${token}`) : req;
+};
+
+const patchCard = (id: string, token: string | undefined, body: object) => {
+  const req = request(app.getHttpServer()).patch(`/api/cards/${id}`).send(body);
   return token ? req.set('Authorization', `Bearer ${token}`) : req;
 };
 
@@ -154,5 +163,59 @@ describe('GET /api/cards/{id} (ticket #13)', () => {
   it('returns 401 without a token', async () => {
     const created = await postCard(listIds.alice, tokens.alice, { title: 'Mine' }).expect(201);
     await getCard(created.body.id).expect(401);
+  });
+});
+
+describe('PATCH /api/cards/{id} (ticket #14)', () => {
+  it('returns 200 with the updated card when its list is mine', async () => {
+    const created = await postCard(listIds.alice, tokens.alice, { title: 'Draft', description: 'v1' }).expect(
+      201,
+    );
+    const changes = { title: 'Final', description: 'v2', position: 3 };
+    const res = await patchCard(created.body.id, tokens.alice, changes).expect(200);
+    expect(res.body).toMatchObject({ id: created.body.id, ...changes, listId: listIds.alice });
+
+    const cleared = await patchCard(created.body.id, tokens.alice, { description: null }).expect(200);
+    expect(cleared.body.description).toBeNull();
+  });
+
+  it('returns 200 and moves the card to another list of mine', async () => {
+    const created = await postCard(listIds.alice, tokens.alice, { title: 'Movable' }).expect(201);
+    const targetListId = await createList(tokens.alice);
+
+    const res = await patchCard(created.body.id, tokens.alice, { listId: targetListId }).expect(200);
+    expect(res.body).toMatchObject({ id: created.body.id, listId: targetListId });
+    const target = await getCards(targetListId, tokens.alice).expect(200);
+    expect(target.body).toHaveLength(1);
+  });
+
+  it('returns 403 when the parent list of the card belongs to another user', async () => {
+    const created = await postCard(listIds.bob, tokens.bob, { title: 'His' }).expect(201);
+    await patchCard(created.body.id, tokens.alice, { title: 'Hacked' }).expect(403);
+  });
+
+  it('returns 403 when moving my card to a list of another user', async () => {
+    const created = await postCard(listIds.alice, tokens.alice, { title: 'Mine' }).expect(201);
+    const res = await patchCard(created.body.id, tokens.alice, { listId: listIds.bob }).expect(403);
+    expect(res.body).toMatchObject({ statusCode: 403, error: 'Forbidden' });
+  });
+
+  it('returns 404 for an unknown card id', async () => {
+    await patchCard('00000000-0000-7000-8000-000000000000', tokens.alice, { title: 'Nobody' }).expect(404);
+  });
+
+  it('returns 404 for an unknown target list id', async () => {
+    const created = await postCard(listIds.alice, tokens.alice, { title: 'Mine' }).expect(201);
+    await patchCard(created.body.id, tokens.alice, { listId: '00000000-0000-7000-8000-000000000000' }).expect(
+      404,
+    );
+  });
+
+  it('returns 400 naming the field for an invalid payload', async () => {
+    const created = await postCard(listIds.alice, tokens.alice, { title: 'Mine' }).expect(201);
+    for (const body of [{ title: '' }, { position: 'top' }, { listId: null }]) {
+      const res = await patchCard(created.body.id, tokens.alice, body).expect(400);
+      expect(res.body.message).toContainEqual(expect.stringContaining(Object.keys(body)[0]));
+    }
   });
 });

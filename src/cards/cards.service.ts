@@ -3,6 +3,7 @@ import { Card } from '../generated/prisma/client';
 import { ListsService } from '../lists/lists.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCardDto } from './dto/create-card.dto';
+import { UpdateCardDto } from './dto/update-card.dto';
 
 @Injectable()
 export class CardsService {
@@ -23,6 +24,15 @@ export class CardsService {
   async createInList(ownerId: string, listId: string, dto: CreateCardDto): Promise<Card> {
     await this.listsService.findOwned(listId, ownerId);
     return this.prisma.card.create({ data: { ...dto, listId } });
+  }
+
+  async update(ownerId: string, id: string, dto: UpdateCardDto): Promise<Card> {
+    await this.findOwned(id, ownerId);
+    // Moving the card: the target list must exist and be mine too (404 then 403), even if the card is mine.
+    if (dto.listId !== undefined) {
+      await this.listsService.findOwned(dto.listId, ownerId);
+    }
+    return this.prisma.card.update({ where: { id }, data: dto });
   }
 
   // Rights go through the parent list: the card must exist (404), then its list must be mine (403).
