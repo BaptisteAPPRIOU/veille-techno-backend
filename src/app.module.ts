@@ -2,6 +2,7 @@ import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
+import { CardsModule } from './cards/cards.module';
 import { validate } from './config/env.validation';
 import { ListsModule } from './lists/lists.module';
 import { PrismaExceptionFilter } from './prisma/prisma-exception.filter';
@@ -16,6 +17,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     UsersModule,
     ListsModule,
+    CardsModule,
   ],
   providers: [
     // Validate DTOs on every route: report invalid fields with 400 and reject unknown fields.

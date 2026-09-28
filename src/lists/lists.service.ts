@@ -32,7 +32,7 @@ export class ListsService {
   }
 
   // Existence first, then ownership: same order as the users module.
-  private async findOwned(id: string, ownerId: string): Promise<List> {
+  async findOwned(id: string, ownerId: string): Promise<List> {
     const list = await this.prisma.list.findUnique({ where: { id } });
     if (!list) {
       throw new NotFoundException('List not found');
