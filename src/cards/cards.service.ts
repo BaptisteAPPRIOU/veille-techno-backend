@@ -35,6 +35,11 @@ export class CardsService {
     return this.prisma.card.update({ where: { id }, data: dto });
   }
 
+  async remove(ownerId: string, id: string): Promise<void> {
+    await this.findOwned(id, ownerId);
+    await this.prisma.card.delete({ where: { id } });
+  }
+
   // Rights go through the parent list: the card must exist (404), then its list must be mine (403).
   async findOwned(id: string, ownerId: string): Promise<Card> {
     const card = await this.prisma.card.findUnique({ where: { id } });

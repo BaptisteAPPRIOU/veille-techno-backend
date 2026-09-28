@@ -61,6 +61,11 @@ const patchCard = (id: string, token: string | undefined, body: object) => {
   return token ? req.set('Authorization', `Bearer ${token}`) : req;
 };
 
+const deleteCard = (id: string, token?: string) => {
+  const req = request(app.getHttpServer()).delete(`/api/cards/${id}`);
+  return token ? req.set('Authorization', `Bearer ${token}`) : req;
+};
+
 describe('GET /api/lists/{listId}/cards (ticket #11)', () => {
   it('returns 200 with the cards of my list, ordered by position', async () => {
     // Seed directly in the database: this test only targets the read route.
@@ -217,5 +222,29 @@ describe('PATCH /api/cards/{id} (ticket #14)', () => {
       const res = await patchCard(created.body.id, tokens.alice, body).expect(400);
       expect(res.body.message).toContainEqual(expect.stringContaining(Object.keys(body)[0]));
     }
+  });
+});
+
+describe('DELETE /api/cards/{id} (ticket #15)', () => {
+  it('returns 204 and the card is gone', async () => {
+    const created = await postCard(listIds.alice, tokens.alice, { title: 'Done' }).expect(201);
+    const res = await deleteCard(created.body.id, tokens.alice).expect(204);
+    expect(res.body).toEqual({});
+    await getCard(created.body.id, tokens.alice).expect(404);
+  });
+
+  it('returns 403 when the parent list of the card belongs to another user', async () => {
+    const created = await postCard(listIds.bob, tokens.bob, { title: 'His' }).expect(201);
+    const res = await deleteCard(created.body.id, tokens.alice).expect(403);
+    expect(res.body).toMatchObject({ statusCode: 403, error: 'Forbidden' });
+  });
+
+  it('returns 404 for an unknown card id', async () => {
+    await deleteCard('00000000-0000-7000-8000-000000000000', tokens.alice).expect(404);
+  });
+
+  it('returns 401 without a token', async () => {
+    const created = await postCard(listIds.alice, tokens.alice, { title: 'Mine' }).expect(201);
+    await deleteCard(created.body.id).expect(401);
   });
 });

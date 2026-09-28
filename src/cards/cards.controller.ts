@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiForbiddenResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -58,5 +59,13 @@ export class CardsController {
     @Body() dto: UpdateCardDto,
   ): Promise<CardResponseDto> {
     return this.cardsService.update(user.id, id, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a card of one of my lists' })
+  @ApiNoContentResponse({ description: 'Card deleted. No body.' })
+  remove(@CurrentUser() user: PublicUser, @Param('id') id: string): Promise<void> {
+    return this.cardsService.remove(user.id, id);
   }
 }
