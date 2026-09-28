@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional, ApiSchema } from '@nestjs/swagger';
+import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 
 @ApiSchema({ name: 'Card' })
 export class CardResponseDto {
@@ -9,7 +9,7 @@ export class CardResponseDto {
   title: string;
 
   // Union types are not reflected by TypeScript: type must be given for Swagger to document a string.
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'Installation, usage and implementation choices',
     type: String,
     nullable: true,

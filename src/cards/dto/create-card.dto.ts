@@ -9,10 +9,14 @@ export class CreateCardDto {
   title: string;
 
   // description is nullable in the schema, so null is a valid value here; position is not.
-  @ApiPropertyOptional({ example: 'Installation, usage and implementation choices' })
+  @ApiPropertyOptional({
+    example: 'Installation, usage and implementation choices',
+    type: String,
+    nullable: true,
+  })
   @IsOptional()
   @IsString()
-  description?: string;
+  description?: string | null;
 
   @ApiPropertyOptional({ example: 0, type: 'integer', description: 'Defaults to 0' })
   @ValidateIf((_, value) => value !== undefined)

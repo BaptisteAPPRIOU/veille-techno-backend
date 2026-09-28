@@ -29,7 +29,7 @@ import { UpdateCardDto } from './dto/update-card.dto';
   schema: { example: { statusCode: 403, message: 'This list belongs to another user', error: 'Forbidden' } },
 })
 @ApiNotFoundResponse({
-  description: 'Unknown card id, or unknown target list id for a move',
+  description: 'Unknown card id',
   schema: { example: { statusCode: 404, message: 'Card not found', error: 'Not Found' } },
 })
 @UseGuards(AuthGuard)
@@ -52,6 +52,20 @@ export class CardsController {
   @ApiBadRequestResponse({
     description: 'Invalid payload (empty title, non-integer position, null listId)',
     schema: { example: { statusCode: 400, message: ['title should not be empty'], error: 'Bad Request' } },
+  })
+  // Two possible 404 on this route, so it overrides the class-level one with both examples.
+  @ApiNotFoundResponse({
+    description: 'Unknown card id, or unknown target list id for a move',
+    examples: {
+      card: {
+        summary: 'Unknown card',
+        value: { statusCode: 404, message: 'Card not found', error: 'Not Found' },
+      },
+      list: {
+        summary: 'Unknown target list',
+        value: { statusCode: 404, message: 'List not found', error: 'Not Found' },
+      },
+    },
   })
   update(
     @CurrentUser() user: PublicUser,
